@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-typedef enum {
+typedef enum TokenType {
     TOKEN_NUMBER,
     TOKEN_PLUS,
     TOKEN_MINUS,
@@ -12,7 +12,7 @@ typedef enum {
     TOKEN_END
 } TokenType;
 
-typedef struct {
+typedef struct Token {
     TokenType type;
     int value;  // Used only if type == TOKEN_NUMBER
     char op;    // Used only for operators
@@ -21,7 +21,6 @@ typedef struct {
 typedef struct TokenList {
     Token *tokens;
     size_t length;
-    size_t capacity;
 } TokenList;
 
 typedef struct AstNode {
@@ -34,6 +33,5 @@ TokenList tokenize(const char *input);
 AstNode *parse_expression(TokenList *tokens, size_t *current);
 AstNode *parse_term(TokenList *tokens, size_t *current);
 AstNode *parse_factor(TokenList *tokens, size_t *current);
-long eval(AstNode *node);
+int eval(AstNode *node);
 void print_ast(AstNode *node, int depth);
-void free_ast(AstNode *node);

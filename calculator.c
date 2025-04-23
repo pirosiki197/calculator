@@ -1,9 +1,9 @@
+#include "calculator.h"
+
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-
-#include "calculator.h"
 
 // <expr> ::= <term> { ("+" | "-") <term> } ;
 // <term> ::= <factor> { ("*" | "/") <factor> } ;
@@ -11,9 +11,15 @@
 // <number> ::= <digit> { <digit> } ;
 // <digit> ::= "0" .. "9" ;
 
+#define TOKEN_LENGTH 256
+static Token tokens[TOKEN_LENGTH];
+
+static int current_ast_node_index = 0;
+static AstNode ast_nodes[256];
+
 TokenList tokenize(const char *input) {
-    TokenList list = {malloc(16 * sizeof(Token)), 0, 16};
-    if (!list.tokens) exit(1);
+    current_ast_node_index = 0;
+    TokenList list = {tokens, 0};
 
     size_t i = 0;
     while (input[i]) {
@@ -33,24 +39,30 @@ TokenList tokenize(const char *input) {
         } else {
             Token token;
             switch (input[i]) {
-                case '+': token = (Token){TOKEN_PLUS, 0, '+'}; break;
-                case '-': token = (Token){TOKEN_MINUS, 0, '-'}; break;
-                case '*': token = (Token){TOKEN_MULTIPLY, 0, '*'}; break;
-                case '/': token = (Token){TOKEN_DIVIDE, 0, '/'}; break;
-                case '(': token = (Token){TOKEN_LPAREN, 0, '('}; break;
-                case ')': token = (Token){TOKEN_RPAREN, 0, ')'}; break;
+                case '+':
+                    token = (Token){TOKEN_PLUS, 0, '+'};
+                    break;
+                case '-':
+                    token = (Token){TOKEN_MINUS, 0, '-'};
+                    break;
+                case '*':
+                    token = (Token){TOKEN_MULTIPLY, 0, '*'};
+                    break;
+                case '/':
+                    token = (Token){TOKEN_DIVIDE, 0, '/'};
+                    break;
+                case '(':
+                    token = (Token){TOKEN_LPAREN, 0, '('};
+                    break;
+                case ')':
+                    token = (Token){TOKEN_RPAREN, 0, ')'};
+                    break;
                 default:
                     printf("Unknown character: %c\n", input[i]);
                     exit(1);
             }
             list.tokens[list.length++] = token;
             i++;
-        }
-
-        if (list.length >= list.capacity) {
-            list.capacity *= 2;
-            list.tokens = realloc(list.tokens, list.capacity * sizeof(Token));
-            if (!list.tokens) exit(1);
         }
     }
 
@@ -59,7 +71,7 @@ TokenList tokenize(const char *input) {
 }
 
 AstNode *new_node(Token token) {
-    AstNode *node = malloc(sizeof(AstNode));
+    AstNode *node = &ast_nodes[current_ast_node_index++];
     node->token = token;
     node->left = node->right = NULL;
     return node;
@@ -68,8 +80,8 @@ AstNode *new_node(Token token) {
 AstNode *parse_expression(TokenList *tokens, size_t *current) {
     AstNode *node = parse_term(tokens, current);
     while (*current < tokens->length &&
-          (tokens->tokens[*current].type == TOKEN_PLUS ||
-           tokens->tokens[*current].type == TOKEN_MINUS)) {
+           (tokens->tokens[*current].type == TOKEN_PLUS ||
+            tokens->tokens[*current].type == TOKEN_MINUS)) {
         Token token = tokens->tokens[(*current)++];
         AstNode *right = parse_term(tokens, current);
         AstNode *new_node_ = new_node(token);
@@ -83,8 +95,8 @@ AstNode *parse_expression(TokenList *tokens, size_t *current) {
 AstNode *parse_term(TokenList *tokens, size_t *current) {
     AstNode *node = parse_factor(tokens, current);
     while (*current < tokens->length &&
-          (tokens->tokens[*current].type == TOKEN_MULTIPLY ||
-           tokens->tokens[*current].type == TOKEN_DIVIDE)) {
+           (tokens->tokens[*current].type == TOKEN_MULTIPLY ||
+            tokens->tokens[*current].type == TOKEN_DIVIDE)) {
         Token token = tokens->tokens[(*current)++];
         AstNode *right = parse_factor(tokens, current);
         AstNode *new_node_ = new_node(token);
@@ -124,7 +136,7 @@ AstNode *parse_factor(TokenList *tokens, size_t *current) {
     }
 }
 
-long eval(AstNode *node) {
+int eval(AstNode *node) {
     switch (node->token.type) {
         case TOKEN_NUMBER:
             return node->token.value;
@@ -144,16 +156,13 @@ long eval(AstNode *node) {
 void print_ast(AstNode *node, int depth) {
     for (int i = 0; i < depth; ++i) printf("  ");
     switch (node->token.type) {
-        case TOKEN_NUMBER: printf("Number(%d)\n", node->token.value); break;
-        default: printf("Operator(%c)\n", node->token.op); break;
+        case TOKEN_NUMBER:
+            printf("Number(%d)\n", node->token.value);
+            break;
+        default:
+            printf("Operator(%c)\n", node->token.op);
+            break;
     }
     if (node->left) print_ast(node->left, depth + 1);
     if (node->right) print_ast(node->right, depth + 1);
-}
-
-void free_ast(AstNode *node) {
-    if (!node) return;
-    free_ast(node->left);
-    free_ast(node->right);
-    free(node);
 }

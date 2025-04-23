@@ -1,7 +1,7 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "calculator.h"
 
@@ -36,9 +36,7 @@ int main() {
     print_ast(ast, 0);
     printf("-----------\n");
 
-    printf("Result: %ld\n", eval(ast));
+    printf("Result: %d\n", eval(ast));
 
-    free_ast(ast);
-    free(tokens.tokens);
     return 0;
 }
